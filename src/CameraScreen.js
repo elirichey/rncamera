@@ -1,6 +1,8 @@
 /* eslint-disable no-console */
 import React, {Component} from 'react';
 import {
+  Platform,
+  PermissionsAndroid,
   StyleSheet,
   Text,
   View,
@@ -10,6 +12,7 @@ import {
   Dimensions,
 } from 'react-native';
 import {RNCamera} from 'react-native-camera';
+import CameraRoll from '@react-native-community/cameraroll';
 
 const flashModeOrder = {
   off: 'on',
@@ -30,6 +33,12 @@ const wbOrder = {
 const landmarkSize = 2;
 
 export default class CameraScreen extends Component {
+  componentDidMount = async () => {
+    if (Platform.OS === 'android' && !(await this.hasAndroidPermission())) {
+      return;
+    }
+  };
+
   state = {
     flash: 'off',
     zoom: 0,
@@ -123,10 +132,31 @@ export default class CameraScreen extends Component {
     });
   }
 
+  hasAndroidPermission = async () => {
+    const permission = PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE;
+
+    const hasPermission = await PermissionsAndroid.check(permission);
+    if (hasPermission) {
+      console.log('HAS PERMISSIONS');
+      return true;
+    }
+
+    console.log('NO PERMISSIONS');
+
+    const status = await PermissionsAndroid.request(permission);
+    console.log('PERMISSIONS GRANTED!');
+    return status === 'granted';
+  };
+
   takePicture = async function () {
     if (this.camera) {
       const data = await this.camera.takePictureAsync();
-      console.warn('takePicture ', data);
+      let tag = data.uri;
+
+      // Need a new promise here before saving?
+      console.log('takePicture ', tag);
+
+      CameraRoll.save(tag);
     }
   };
 
@@ -139,7 +169,11 @@ export default class CameraScreen extends Component {
         if (promise) {
           this.setState({isRecording: true});
           const data = await promise;
-          console.warn('takeVideo', data);
+          let tag = data.uri;
+
+          console.log('takeVideo', tag);
+
+          CameraRoll.save(tag);
         }
       } catch (e) {
         console.error(e);
