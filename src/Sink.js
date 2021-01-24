@@ -32,7 +32,7 @@ const wbOrder = {
 
 const landmarkSize = 2;
 
-export default class CameraScreen extends Component {
+export default class Sink extends Component {
   componentDidMount = async () => {
     if (Platform.OS === 'android' && !(await this.hasAndroidPermission())) {
       return;

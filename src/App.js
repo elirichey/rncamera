@@ -1,13 +1,14 @@
 import React, {Component} from 'react';
 import {StyleSheet, StatusBar, View} from 'react-native';
-import CameraScreen from './CameraScreen';
+// import Sink from './Sink';
+import Camera from './Camera';
 
 export default class App extends Component {
   render() {
     return (
       <View style={styles.container}>
         <StatusBar hidden={true} />
-        <CameraScreen />
+        <Camera />
       </View>
     );
   }
