@@ -225,7 +225,6 @@ export default class Camera extends Component {
         whiteBalance={whiteBalance}
         ratio={'16:9'}
         focusDepth={depth}
-        captureAudio={true}
         androidCameraPermissionOptions={{
           title: 'Permission to use camera',
           message: 'We need your permission to use your camera',

@@ -32,66 +32,70 @@ const wbOrder = {
 const landmarkSize = 2;
 
 export default class Sink extends Component {
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      flash: 'off',
+      zoom: 0,
+      autoFocus: 'on',
+      autoFocusPoint: {
+        normalized: {x: 0.5, y: 0.5}, // normalized values required for autoFocusPointOfInterest
+        drawRectPosition: {
+          x: Dimensions.get('window').width * 0.5 - 32,
+          y: Dimensions.get('window').height * 0.5 - 32,
+        },
+      },
+      depth: 0,
+      type: 'back',
+      whiteBalance: 'auto',
+      ratio: '16:9',
+      recordOptions: {
+        mute: false,
+        maxDuration: 5,
+        quality: RNCamera.Constants.VideoQuality['288p'],
+      },
+      isRecording: false,
+      canDetectFaces: false,
+      canDetectText: false,
+      canDetectBarcode: false,
+      faces: [],
+      textBlocks: [],
+      barcodes: [],
+    };
+  }
+
   componentDidMount = async () => {
     if (Platform.OS === 'android' && !(await this.hasAndroidPermission())) {
       return;
     }
   };
 
-  state = {
-    flash: 'off',
-    zoom: 0,
-    autoFocus: 'on',
-    autoFocusPoint: {
-      normalized: {x: 0.5, y: 0.5}, // normalized values required for autoFocusPointOfInterest
-      drawRectPosition: {
-        x: Dimensions.get('window').width * 0.5 - 32,
-        y: Dimensions.get('window').height * 0.5 - 32,
-      },
-    },
-    depth: 0,
-    type: 'back',
-    whiteBalance: 'auto',
-    ratio: '16:9',
-    recordOptions: {
-      mute: false,
-      maxDuration: 5,
-      quality: RNCamera.Constants.VideoQuality['288p'],
-    },
-    isRecording: false,
-    canDetectFaces: false,
-    canDetectText: false,
-    canDetectBarcode: false,
-    faces: [],
-    textBlocks: [],
-    barcodes: [],
-  };
-
-  toggleFacing() {
+  toggleFacing = () => {
     this.setState({
       type: this.state.type === 'back' ? 'front' : 'back',
     });
-  }
+  };
 
-  toggleFlash() {
+  toggleFlash = () => {
     this.setState({
       flash: flashModeOrder[this.state.flash],
     });
-  }
+  };
 
-  toggleWB() {
+  toggleWB = () => {
     this.setState({
       whiteBalance: wbOrder[this.state.whiteBalance],
     });
-  }
+  };
 
-  toggleFocus() {
+  toggleFocus = () => {
     this.setState({
       autoFocus: this.state.autoFocus === 'on' ? 'off' : 'on',
     });
-  }
+  };
 
-  touchToFocus(event) {
+  touchToFocus = (event) => {
     const {pageX, pageY} = event.nativeEvent;
     const screenWidth = Dimensions.get('window').width;
     const screenHeight = Dimensions.get('window').height;
@@ -111,25 +115,25 @@ export default class Sink extends Component {
         drawRectPosition: {x: pageX, y: pageY},
       },
     });
-  }
+  };
 
-  zoomOut() {
+  zoomOut = () => {
     this.setState({
       zoom: this.state.zoom - 0.1 < 0 ? 0 : this.state.zoom - 0.1,
     });
-  }
+  };
 
-  zoomIn() {
+  zoomIn = () => {
     this.setState({
       zoom: this.state.zoom + 0.1 > 1 ? 1 : this.state.zoom + 0.1,
     });
-  }
+  };
 
-  setFocusDepth(depth) {
+  setFocusDepth = (depth) => {
     this.setState({
       depth,
     });
-  }
+  };
 
   hasAndroidPermission = async () => {
     const permission = PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE;
@@ -207,7 +211,7 @@ export default class Sink extends Component {
     </View>
   );
 
-  renderLandmarksOfFace(face) {
+  renderLandmarksOfFace = (face) => {
     const renderLandmark = (position) =>
       position && (
         <View
@@ -235,7 +239,7 @@ export default class Sink extends Component {
         {renderLandmark(face.bottomMouthPosition)}
       </View>
     );
-  }
+  };
 
   renderFaces = () => (
     <View style={styles.facesContainer} pointerEvents="none">
@@ -382,10 +386,11 @@ export default class Sink extends Component {
         }>
         <View style={StyleSheet.absoluteFill}>
           <View style={[styles.autoFocusBox, drawFocusRingPosition]} />
-          <TouchableWithoutFeedback onPress={this.touchToFocus.bind(this)}>
+          <TouchableWithoutFeedback onPress={this.touchToFocus}>
             <View style={{flex: 1}} />
           </TouchableWithoutFeedback>
         </View>
+
         <View
           style={{
             flex: 0.5,
@@ -402,23 +407,24 @@ export default class Sink extends Component {
             }}>
             <TouchableOpacity
               style={styles.flipButton}
-              onPress={this.toggleFacing.bind(this)}>
+              onPress={this.toggleFacing}>
               <Text style={styles.flipText}> FLIP </Text>
             </TouchableOpacity>
+
             <TouchableOpacity
               style={styles.flipButton}
-              onPress={this.toggleFlash.bind(this)}>
+              onPress={this.toggleFlash}>
               <Text style={styles.flipText}> FLASH: {this.state.flash} </Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.flipButton}
-              onPress={this.toggleWB.bind(this)}>
+
+            <TouchableOpacity style={styles.flipButton} onPress={this.toggleWB}>
               <Text style={styles.flipText}>
                 {' '}
                 WB: {this.state.whiteBalance}{' '}
               </Text>
             </TouchableOpacity>
           </View>
+
           <View
             style={{
               backgroundColor: 'transparent',
@@ -432,6 +438,7 @@ export default class Sink extends Component {
                 {!canDetectFaces ? 'Detect Faces' : 'Detecting Faces'}
               </Text>
             </TouchableOpacity>
+
             <TouchableOpacity
               onPress={this.toggle('canDetectText')}
               style={styles.flipButton}>
@@ -439,6 +446,7 @@ export default class Sink extends Component {
                 {!canDetectText ? 'Detect Text' : 'Detecting Text'}
               </Text>
             </TouchableOpacity>
+
             <TouchableOpacity
               onPress={this.toggle('canDetectBarcode')}
               style={styles.flipButton}>
@@ -448,6 +456,7 @@ export default class Sink extends Component {
             </TouchableOpacity>
           </View>
         </View>
+
         <View style={{bottom: 0}}>
           <View
             style={{
@@ -459,12 +468,13 @@ export default class Sink extends Component {
             {/*
             <Slider
               style={{width: 150, marginTop: 15, alignSelf: 'flex-end'}}
-              onValueChange={this.setFocusDepth.bind(this)}
+              onValueChange={this.setFocusDepth}
               step={0.1}
               disabled={this.state.autoFocus === 'on'}
             />
               */}
           </View>
+
           <View
             style={{
               height: 56,
@@ -474,11 +484,13 @@ export default class Sink extends Component {
             }}>
             {this.renderRecording()}
           </View>
+
           {this.state.zoom !== 0 && (
             <Text style={[styles.flipText, styles.zoomText]}>
               Zoom: {this.state.zoom}
             </Text>
           )}
+
           <View
             style={{
               height: 56,
@@ -488,30 +500,34 @@ export default class Sink extends Component {
             }}>
             <TouchableOpacity
               style={[styles.flipButton, {flex: 0.1, alignSelf: 'flex-end'}]}
-              onPress={this.zoomIn.bind(this)}>
+              onPress={this.zoomIn}>
               <Text style={styles.flipText}> + </Text>
             </TouchableOpacity>
+
             <TouchableOpacity
               style={[styles.flipButton, {flex: 0.1, alignSelf: 'flex-end'}]}
-              onPress={this.zoomOut.bind(this)}>
+              onPress={this.zoomOut}>
               <Text style={styles.flipText}> - </Text>
             </TouchableOpacity>
+
             <TouchableOpacity
               style={[styles.flipButton, {flex: 0.25, alignSelf: 'flex-end'}]}
-              onPress={this.toggleFocus.bind(this)}>
+              onPress={this.toggleFocus}>
               <Text style={styles.flipText}> AF : {this.state.autoFocus} </Text>
             </TouchableOpacity>
+
             <TouchableOpacity
               style={[
                 styles.flipButton,
                 styles.picButton,
                 {flex: 0.3, alignSelf: 'flex-end'},
               ]}
-              onPress={this.takePicture.bind(this)}>
+              onPress={this.takePicture}>
               <Text style={styles.flipText}> SNAP </Text>
             </TouchableOpacity>
           </View>
         </View>
+
         {!!canDetectFaces && this.renderFaces()}
         {!!canDetectFaces && this.renderLandmarks()}
         {!!canDetectText && this.renderTextBlocks()}
