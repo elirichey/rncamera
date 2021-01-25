@@ -7,7 +7,6 @@ import {
   Text,
   View,
   TouchableOpacity,
-  // Slider,
   TouchableWithoutFeedback,
   Dimensions,
 } from 'react-native';
@@ -37,7 +36,6 @@ export default class Camera extends Component {
     this.state = {
       flash: 'off',
       zoom: 0,
-      autoFocus: 'on',
       autoFocusPoint: {
         normalized: {x: 0.5, y: 0.5}, // normalized values required for autoFocusPointOfInterest
         drawRectPosition: {
@@ -48,7 +46,6 @@ export default class Camera extends Component {
       depth: 0,
       type: 'back',
       whiteBalance: 'auto',
-      ratio: '16:9',
       recordOptions: {
         mute: false,
         maxDuration: 5,
@@ -64,7 +61,7 @@ export default class Camera extends Component {
     }
   };
 
-  toggleFacing = () => {
+  toggleViewport = () => {
     this.setState({
       type: this.state.type === 'back' ? 'front' : 'back',
     });
@@ -76,15 +73,9 @@ export default class Camera extends Component {
     });
   };
 
-  toggleWB = () => {
+  toggleWhiteBalance = () => {
     this.setState({
-      whiteBalance: `wbOrder`[this.state.whiteBalance],
-    });
-  };
-
-  toggleFocus = () => {
-    this.setState({
-      autoFocus: this.state.autoFocus === 'on' ? 'off' : 'on',
+      whiteBalance: wbOrder[this.state.whiteBalance],
     });
   };
 
@@ -152,11 +143,12 @@ export default class Camera extends Component {
       // Need a new promise here before saving?
       console.log('takePicture ', tag);
 
+      // Save Location
       CameraRoll.save(tag);
     }
   };
 
-  takeVideo = async () => {
+  startVideo = async () => {
     const {isRecording} = this.state;
     if (this.camera && !isRecording) {
       try {
@@ -167,8 +159,9 @@ export default class Camera extends Component {
           const data = await promise;
           let tag = data.uri;
 
-          console.log('takeVideo', tag);
+          console.log('startVideo', tag);
 
+          // Save Location
           CameraRoll.save(tag);
         }
       } catch (e) {
@@ -177,13 +170,10 @@ export default class Camera extends Component {
     }
   };
 
-  toggle = (value) => () =>
-    this.setState((prevState) => ({[value]: !prevState[value]}));
-
   renderRecording = () => {
     const {isRecording} = this.state;
     const backgroundColor = isRecording ? 'white' : 'darkred';
-    const action = isRecording ? this.stopVideo : this.takeVideo;
+    const action = isRecording ? this.stopVideo : this.startVideo;
     const button = isRecording ? this.renderStopRecBtn() : this.renderRecBtn();
     return (
       <TouchableOpacity
@@ -211,31 +201,32 @@ export default class Camera extends Component {
   };
 
   renderStopRecBtn = () => {
-    return <Text style={styles.flipText}> ☕ </Text>;
+    return <Text style={styles.flipText}> STOP </Text>;
   };
 
   renderCamera = () => {
+    const {autoFocusPoint, type, flash, zoom, whiteBalance, depth} = this.state;
+
     const drawFocusRingPosition = {
-      top: this.state.autoFocusPoint.drawRectPosition.y - 32,
-      left: this.state.autoFocusPoint.drawRectPosition.x - 32,
+      top: autoFocusPoint.drawRectPosition.y - 32,
+      left: autoFocusPoint.drawRectPosition.x - 32,
     };
+
     return (
       <RNCamera
         ref={(ref) => {
           this.camera = ref;
         }}
-        style={{
-          flex: 1,
-          justifyContent: 'space-between',
-        }}
-        type={this.state.type}
-        flashMode={this.state.flash}
-        autoFocus={this.state.autoFocus}
-        autoFocusPointOfInterest={this.state.autoFocusPoint.normalized}
-        zoom={this.state.zoom}
-        whiteBalance={this.state.whiteBalance}
-        ratio={this.state.ratio}
-        focusDepth={this.state.depth}
+        style={styles.cameraView}
+        type={type}
+        flashMode={flash}
+        autoFocus={'on'}
+        autoFocusPointOfInterest={autoFocusPoint.normalized}
+        zoom={zoom}
+        whiteBalance={whiteBalance}
+        ratio={'16:9'}
+        focusDepth={depth}
+        captureAudio={true}
         androidCameraPermissionOptions={{
           title: 'Permission to use camera',
           message: 'We need your permission to use your camera',
@@ -246,6 +237,7 @@ export default class Camera extends Component {
         onFacesDetected={undefined}
         onTextRecognized={undefined}
         onGoogleVisionBarcodesDetected={false}>
+        {/* */}
         <View style={StyleSheet.absoluteFill}>
           <View style={[styles.autoFocusBox, drawFocusRingPosition]} />
           <TouchableWithoutFeedback onPress={this.touchToFocus}>
@@ -253,6 +245,7 @@ export default class Camera extends Component {
           </TouchableWithoutFeedback>
         </View>
 
+        {/*  Stock Controls */}
         <View
           style={{
             flex: 0.5,
@@ -269,49 +262,25 @@ export default class Camera extends Component {
             }}>
             <TouchableOpacity
               style={styles.flipButton}
-              onPress={this.toggleFacing}>
+              onPress={this.toggleViewport}>
               <Text style={styles.flipText}> FLIP </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.flipButton}
               onPress={this.toggleFlash}>
-              <Text style={styles.flipText}> FLASH: {this.state.flash} </Text>
+              <Text style={styles.flipText}> FLASH: {flash} </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.flipButton} onPress={this.toggleWB}>
-              <Text style={styles.flipText}>
-                {' '}
-                WB: {this.state.whiteBalance}{' '}
-              </Text>
+            <TouchableOpacity
+              style={styles.flipButton}
+              onPress={this.toggleWhiteBalance}>
+              <Text style={styles.flipText}> WB: {whiteBalance} </Text>
             </TouchableOpacity>
           </View>
-          <View
-            style={{
-              backgroundColor: 'transparent',
-              flexDirection: 'row',
-              justifyContent: 'space-around',
-            }}></View>
         </View>
 
         <View style={{bottom: 0}}>
-          <View
-            style={{
-              height: 20,
-              backgroundColor: 'transparent',
-              flexDirection: 'row',
-              alignSelf: 'flex-end',
-            }}>
-            {/*
-            <Slider
-              style={{width: 150, marginTop: 15, alignSelf: 'flex-end'}}
-              onValueChange={this.setFocusDepth}
-              step={0.1}
-              disabled={this.state.autoFocus === 'on'}
-            />
-              */}
-          </View>
-
           <View
             style={{
               height: 56,
@@ -323,9 +292,7 @@ export default class Camera extends Component {
           </View>
 
           {this.state.zoom !== 0 && (
-            <Text style={[styles.flipText, styles.zoomText]}>
-              Zoom: {this.state.zoom}
-            </Text>
+            <Text style={[styles.flipText, styles.zoomText]}>Zoom: {zoom}</Text>
           )}
 
           <View
@@ -345,12 +312,6 @@ export default class Camera extends Component {
               style={[styles.flipButton, {flex: 0.1, alignSelf: 'flex-end'}]}
               onPress={this.zoomOut}>
               <Text style={styles.flipText}> - </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.flipButton, {flex: 0.25, alignSelf: 'flex-end'}]}
-              onPress={this.toggleFocus}>
-              <Text style={styles.flipText}> AF : {this.state.autoFocus} </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -379,6 +340,12 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     backgroundColor: '#FF00FF',
   },
+  cameraView: {
+    flex: 1,
+    justifyContent: 'space-between',
+  },
+
+  /**************** Stock UI Styles ****************/
   flipButton: {
     flex: 0.3,
     height: 40,
