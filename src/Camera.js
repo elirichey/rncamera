@@ -12,22 +12,6 @@ import {
 import {RNCamera} from 'react-native-camera';
 import CameraRoll from '@react-native-community/cameraroll';
 
-const flashModeOrder = {
-  off: 'on',
-  on: 'auto',
-  auto: 'torch',
-  torch: 'off',
-};
-
-const wbOrder = {
-  auto: 'sunny',
-  sunny: 'cloudy',
-  cloudy: 'shadow',
-  shadow: 'fluorescent',
-  fluorescent: 'incandescent',
-  incandescent: 'auto',
-};
-
 export default class Camera extends Component {
   constructor(props) {
     super(props);
@@ -36,19 +20,17 @@ export default class Camera extends Component {
       flash: 'off',
       zoom: 0,
       autoFocusPoint: {
-        normalized: {x: 0.5, y: 0.5}, // normalized values required for autoFocusPointOfInterest
+        normalized: {x: 0.5, y: 0.5},
         drawRectPosition: {
           x: Dimensions.get('window').width * 0.5 - 32,
           y: Dimensions.get('window').height * 0.5 - 32,
         },
       },
       depth: 0,
-      type: 'back',
+      viewPortFront: false,
       whiteBalance: 'auto',
       recordOptions: {
         mute: false,
-        maxDuration: 5,
-        quality: RNCamera.Constants.VideoQuality['288p'],
       },
       isRecording: false,
     };
@@ -60,23 +42,79 @@ export default class Camera extends Component {
     }
   };
 
+  hasAndroidPermission = async () => {
+    const permission = PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE;
+    const hasPermission = await PermissionsAndroid.check(permission);
+    if (hasPermission) {
+      return true;
+    }
+    const status = await PermissionsAndroid.request(permission);
+    return status === 'granted';
+  };
+
+  /************************************ TOP CONTROLS ************************************/
+
   toggleViewport = () => {
     this.setState({
-      type: this.state.type === 'back' ? 'front' : 'back',
+      viewPortFront: this.state.viewPortFront ? false : true,
     });
   };
 
   toggleFlash = () => {
-    this.setState({
-      flash: flashModeOrder[this.state.flash],
-    });
+    let {flash} = this.state;
+
+    switch (flash) {
+      case 'off':
+        return this.setState({flash: 'on'});
+      case 'on':
+        return this.setState({flash: 'torch'});
+      case 'torch':
+        return this.setState({flash: 'auto'});
+      case 'auto':
+        return this.setState({flash: 'off'});
+      default:
+        return this.setState({flash: 'off'});
+    }
+  };
+
+  determineFlash = () => {
+    let {flash} = this.state;
+    switch (flash) {
+      case 'off':
+        return RNCamera.Constants.FlashMode.off;
+      case 'on':
+        return RNCamera.Constants.FlashMode.on;
+      case 'auto':
+        return RNCamera.Constants.FlashMode.auto;
+      case 'torch':
+        return RNCamera.Constants.FlashMode.torch;
+      default:
+        return RNCamera.Constants.FlashMode.off;
+    }
   };
 
   toggleWhiteBalance = () => {
-    this.setState({
-      whiteBalance: wbOrder[this.state.whiteBalance],
-    });
+    let {whiteBalance} = this.state;
+
+    switch (whiteBalance) {
+      case 'auto':
+        return this.setState({whiteBalance: 'sunny'});
+      case 'sunny':
+        return this.setState({whiteBalance: 'cloudy'});
+      case 'cloudy':
+        return this.setState({whiteBalance: 'shadow'});
+      case 'shadow':
+        return this.setState({whiteBalance: 'fluorescent'});
+      case 'fluorescent':
+        return this.setState({whiteBalance: 'incandescent'});
+      case 'incandescent':
+        return this.setState({whiteBalance: 'auto'});
+      default:
+        return this.setState({whiteBalance: 'auto'});
+    }
   };
+
+  /************************************ TOUCHABLES ************************************/
 
   touchToFocus = (event) => {
     const {pageX, pageY} = event.nativeEvent;
@@ -86,7 +124,7 @@ export default class Camera extends Component {
 
     let x = pageX / screenWidth;
     let y = pageY / screenHeight;
-    // Coordinate transform for portrait. See autoFocusPointOfInterest in docs for more info
+
     if (isPortrait) {
       x = pageY / screenHeight;
       y = -(pageX / screenWidth) + 1;
@@ -112,37 +150,14 @@ export default class Camera extends Component {
     });
   };
 
-  setFocusDepth = (depth) => {
-    this.setState({
-      depth,
-    });
-  };
-
-  hasAndroidPermission = async () => {
-    const permission = PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE;
-
-    const hasPermission = await PermissionsAndroid.check(permission);
-    if (hasPermission) {
-      console.log('HAS PERMISSIONS');
-      return true;
-    }
-
-    console.log('NO PERMISSIONS');
-
-    const status = await PermissionsAndroid.request(permission);
-    console.log('PERMISSIONS GRANTED!');
-    return status === 'granted';
-  };
+  /************************************ ACTION CONTROLS ************************************/
 
   takePicture = async function () {
     if (this.camera) {
       const data = await this.camera.takePictureAsync();
       let tag = data.uri;
 
-      // Need a new promise here before saving?
       console.log('takePicture ', tag);
-
-      // Save Location
       CameraRoll.save(tag);
     }
   };
@@ -159,8 +174,6 @@ export default class Camera extends Component {
           let tag = data.uri;
 
           console.log('startVideo', tag);
-
-          // Save Location
           CameraRoll.save(tag);
         }
       } catch (e) {
@@ -168,6 +181,13 @@ export default class Camera extends Component {
       }
     }
   };
+
+  stopVideo = () => {
+    this.camera.stopRecording();
+    this.setState({isRecording: false});
+  };
+
+  /************************************ RENDERS ************************************/
 
   renderRecording = () => {
     const {isRecording} = this.state;
@@ -190,11 +210,6 @@ export default class Camera extends Component {
     );
   };
 
-  stopVideo = async () => {
-    await this.camera.stopRecording();
-    this.setState({isRecording: false});
-  };
-
   renderRecBtn = () => {
     return <Text style={styles.flipText}> REC </Text>;
   };
@@ -203,8 +218,24 @@ export default class Camera extends Component {
     return <Text style={styles.flipText}> STOP </Text>;
   };
 
-  renderCamera = () => {
-    const {autoFocusPoint, type, flash, zoom, whiteBalance, depth} = this.state;
+  cameraNotAuthorized = () => {
+    return (
+      <Text transparent style={styles.cameraNotAuthorized}>
+        Camera access was not granted. Please go to your phone's settings and
+        allow camera access.
+      </Text>
+    );
+  };
+
+  render() {
+    const {
+      autoFocusPoint,
+      viewPortFront,
+      flash,
+      zoom,
+      whiteBalance,
+      depth,
+    } = this.state;
 
     const drawFocusRingPosition = {
       top: autoFocusPoint.drawRectPosition.y - 32,
@@ -212,123 +243,120 @@ export default class Camera extends Component {
     };
 
     return (
-      <RNCamera
-        ref={(ref) => {
-          this.camera = ref;
-        }}
-        style={styles.cameraView}
-        type={type}
-        flashMode={flash}
-        autoFocus={'on'}
-        autoFocusPointOfInterest={autoFocusPoint.normalized}
-        zoom={zoom}
-        whiteBalance={whiteBalance}
-        ratio={'16:9'}
-        focusDepth={depth}
-        androidCameraPermissionOptions={{
-          title: 'Permission to use camera',
-          message: 'We need your permission to use your camera',
-          buttonPositive: 'Ok',
-          buttonNegative: 'Cancel',
-        }}
-        faceDetectionLandmarks={undefined}
-        onFacesDetected={undefined}
-        onTextRecognized={undefined}
-        onGoogleVisionBarcodesDetected={false}>
-        {/* */}
-        <View style={StyleSheet.absoluteFill}>
-          <View style={[styles.autoFocusBox, drawFocusRingPosition]} />
-          <TouchableWithoutFeedback onPress={this.touchToFocus}>
-            <View style={{flex: 1}} />
-          </TouchableWithoutFeedback>
-        </View>
-
-        {/*  Stock Controls */}
-        <View
-          style={{
-            flex: 0.5,
-            height: 72,
-            backgroundColor: 'transparent',
-            flexDirection: 'row',
-            justifyContent: 'space-around',
-          }}>
-          <View
-            style={{
-              backgroundColor: 'transparent',
-              flexDirection: 'row',
-              justifyContent: 'space-around',
-            }}>
-            <TouchableOpacity
-              style={styles.flipButton}
-              onPress={this.toggleViewport}>
-              <Text style={styles.flipText}> FLIP </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.flipButton}
-              onPress={this.toggleFlash}>
-              <Text style={styles.flipText}> FLASH: {flash} </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.flipButton}
-              onPress={this.toggleWhiteBalance}>
-              <Text style={styles.flipText}> WB: {whiteBalance} </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <View style={{bottom: 0}}>
-          <View
-            style={{
-              height: 56,
-              backgroundColor: 'transparent',
-              flexDirection: 'row',
-              alignSelf: 'flex-end',
-            }}>
-            {this.renderRecording()}
+      <View style={styles.container}>
+        <RNCamera
+          ref={(ref) => {
+            this.camera = ref;
+          }}
+          style={styles.cameraView}
+          type={
+            viewPortFront
+              ? RNCamera.Constants.Type.front
+              : RNCamera.Constants.Type.back
+          }
+          flashMode={this.determineFlash()}
+          autoFocus={'on'}
+          autoFocusPointOfInterest={autoFocusPoint.normalized}
+          zoom={zoom}
+          whiteBalance={whiteBalance}
+          ratio={'16:9'}
+          focusDepth={depth}
+          androidCameraPermissionOptions={{
+            title: 'Permission to use camera',
+            message: 'We need your permission to use your camera',
+            buttonPositive: 'Ok',
+            buttonNegative: 'Cancel',
+          }}
+          notAuthorizedView={this.cameraNotAuthorized()}>
+          {/* Touch To Focus */}
+          <View style={StyleSheet.absoluteFill}>
+            <View style={[styles.autoFocusBox, drawFocusRingPosition]} />
+            <TouchableWithoutFeedback onPress={this.touchToFocus}>
+              <View style={{flex: 1}} />
+            </TouchableWithoutFeedback>
           </View>
 
-          {this.state.zoom !== 0 && (
-            <Text style={[styles.flipText, styles.zoomText]}>Zoom: {zoom}</Text>
-          )}
+          {/* Top Controls */}
+          <View style={styles.topControls}>
+            <View
+              style={{
+                flex: 1,
+                height: 50,
+                flexDirection: 'row',
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}>
+              <TouchableOpacity
+                style={styles.topBtn}
+                onPress={this.toggleFlash}>
+                <Text style={styles.flipText}>FLASH: {flash}</Text>
+              </TouchableOpacity>
 
-          <View
-            style={{
-              height: 56,
-              backgroundColor: 'transparent',
-              flexDirection: 'row',
-              alignSelf: 'flex-end',
-            }}>
-            <TouchableOpacity
-              style={[styles.flipButton, {flex: 0.1, alignSelf: 'flex-end'}]}
-              onPress={this.zoomIn}>
-              <Text style={styles.flipText}> + </Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.topBtn}
+                onPress={this.toggleWhiteBalance}>
+                <Text style={styles.flipText}>WB: {whiteBalance}</Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.flipButton, {flex: 0.1, alignSelf: 'flex-end'}]}
-              onPress={this.zoomOut}>
-              <Text style={styles.flipText}> - </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.flipButton,
-                styles.picButton,
-                {flex: 0.3, alignSelf: 'flex-end'},
-              ]}
-              onPress={this.takePicture}>
-              <Text style={styles.flipText}> SNAP </Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.topBtn}
+                onPress={this.toggleViewport}>
+                <Text style={styles.flipText}>FLIP</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      </RNCamera>
+
+          {/* Bottom Controls */}
+          <View style={styles.bottomControls}>
+            <View
+              style={{
+                height: 56,
+                backgroundColor: 'transparent',
+                flexDirection: 'row',
+                alignSelf: 'flex-end',
+              }}>
+              {this.renderRecording()}
+            </View>
+
+            {this.state.zoom !== 0 && (
+              <Text style={[styles.flipText, styles.zoomText]}>
+                Zoom: {zoom}
+              </Text>
+            )}
+
+            <View
+              style={{
+                height: 56,
+                backgroundColor: 'transparent',
+                flexDirection: 'row',
+                alignSelf: 'flex-end',
+              }}>
+              <TouchableOpacity
+                style={[styles.flipButton, {flex: 0.1, alignSelf: 'flex-end'}]}
+                onPress={this.zoomIn}>
+                <Text style={styles.flipText}> + </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.flipButton, {flex: 0.1, alignSelf: 'flex-end'}]}
+                onPress={this.zoomOut}>
+                <Text style={styles.flipText}> - </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.flipButton,
+                  styles.picButton,
+                  {flex: 0.3, alignSelf: 'flex-end'},
+                ]}
+                onPress={this.takePicture}>
+                <Text style={styles.flipText}> SNAP </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </RNCamera>
+      </View>
     );
-  };
-
-  render() {
-    return <View style={styles.container}>{this.renderCamera()}</View>;
   }
 }
 
@@ -336,14 +364,43 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingTop: 10,
-    backgroundColor: '#FF00FF',
+    backgroundColor: '#000011',
   },
   cameraView: {
     flex: 1,
     justifyContent: 'space-between',
   },
 
+  // Main Containers
+  topControls: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  bottomControls: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  cameraNotAuthorized: {
+    padding: 40,
+    paddingTop: 72,
+  },
+
+  // Buttons
+  topBtn: {
+    flex: 1,
+    paddingTop: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
   /**************** Stock UI Styles ****************/
+
   flipButton: {
     flex: 0.3,
     height: 40,
