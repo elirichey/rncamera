@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import {RNCamera} from 'react-native-camera';
 import CameraRoll from '@react-native-community/cameraroll';
+import ZoomView from './ZoomView';
 
 export default class Camera extends Component {
   constructor(props) {
@@ -26,7 +27,7 @@ export default class Camera extends Component {
           y: Dimensions.get('window').height * 0.5 - 32,
         },
       },
-      depth: 0,
+      autoFocus: {x: 0.5, y: 0.5, autoExposure: true},
       viewPortFront: false,
       whiteBalance: 'auto',
       recordOptions: {
@@ -206,13 +207,7 @@ export default class Camera extends Component {
       flash,
       zoom,
       whiteBalance,
-      depth,
     } = this.state;
-
-    const drawFocusRingPosition = {
-      top: autoFocusPoint.drawRectPosition.y - 32,
-      left: autoFocusPoint.drawRectPosition.x - 32,
-    };
 
     return (
       <View style={styles.container}>
@@ -227,12 +222,11 @@ export default class Camera extends Component {
               : RNCamera.Constants.Type.back
           }
           flashMode={this.determineFlash()}
-          autoFocus={'on'}
+          autoFocus={RNCamera.Constants.AutoFocus.on}
           autoFocusPointOfInterest={autoFocusPoint.normalized}
           zoom={zoom}
           whiteBalance={whiteBalance}
           ratio={'16:9'}
-          focusDepth={depth}
           androidCameraPermissionOptions={{
             title: 'Permission to use camera',
             message: 'We need your permission to use your camera',
@@ -241,11 +235,27 @@ export default class Camera extends Component {
           }}
           notAuthorizedView={this.cameraNotAuthorized()}>
           {/* Touch To Focus */}
-          <View style={StyleSheet.absoluteFill}>
-            <View style={[styles.autoFocusBox, drawFocusRingPosition]} />
+          <View style={styles.focusContainer}>
             <TouchableWithoutFeedback onPress={this.touchToFocus}>
               <View style={{flex: 1}} />
             </TouchableWithoutFeedback>
+
+            {/*
+            <ZoomView
+              onZoomProgress={(progress) => {
+                console.log('ZOOM : ', progress);
+                this.setState({zoom: progress});
+              }}
+              onZoomStart={() => {
+                console.log('ZOOM START');
+              }}
+              onZoomEnd={(focusCor) => {
+                focusCor.x = focusCor.x / this.state.cameraWidth;
+                focusCor.y = focusCor.y / this.state.cameraHeight;
+                console.log('ZOOM END : ', focusCor);
+                this.setState({autoFocus: focusCor});
+              }}></ZoomView>
+            */}
           </View>
 
           {/* Top Controls */}
@@ -350,6 +360,9 @@ const styles = StyleSheet.create({
   },
 
   // Main Containers
+  focusContainer: {
+    ...StyleSheet.absoluteFill,
+  },
   topControls: {
     position: 'absolute',
     top: 0,
@@ -372,7 +385,7 @@ const styles = StyleSheet.create({
   // Buttons
   topBtn: {
     flex: 1,
-    paddingTop: 10,
+    padding: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -391,15 +404,6 @@ const styles = StyleSheet.create({
     padding: 5,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  autoFocusBox: {
-    position: 'absolute',
-    height: 64,
-    width: 64,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: 'white',
-    opacity: 0.4,
   },
   flipText: {
     color: '#FFFFFF',

@@ -1,7 +1,7 @@
 import React, {Component} from 'react';
 import {StyleSheet, StatusBar, View} from 'react-native';
 // import Sink from './Sink';
-import Camera from './Camera';
+import Camera from './screens/Camera';
 
 export default class App extends Component {
   render() {
