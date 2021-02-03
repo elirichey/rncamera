@@ -189,35 +189,6 @@ export default class Camera extends Component {
 
   /************************************ RENDERS ************************************/
 
-  renderRecording = () => {
-    const {isRecording} = this.state;
-    const backgroundColor = isRecording ? 'white' : 'darkred';
-    const action = isRecording ? this.stopVideo : this.startVideo;
-    const button = isRecording ? this.renderStopRecBtn() : this.renderRecBtn();
-    return (
-      <TouchableOpacity
-        style={[
-          styles.flipButton,
-          {
-            flex: 0.3,
-            alignSelf: 'flex-end',
-            backgroundColor,
-          },
-        ]}
-        onPress={() => action()}>
-        {button}
-      </TouchableOpacity>
-    );
-  };
-
-  renderRecBtn = () => {
-    return <Text style={styles.flipText}> REC </Text>;
-  };
-
-  renderStopRecBtn = () => {
-    return <Text style={styles.flipText}> STOP </Text>;
-  };
-
   cameraNotAuthorized = () => {
     return (
       <Text transparent style={styles.cameraNotAuthorized}>
@@ -229,6 +200,7 @@ export default class Camera extends Component {
 
   render() {
     const {
+      isRecording,
       autoFocusPoint,
       viewPortFront,
       flash,
@@ -315,7 +287,19 @@ export default class Camera extends Component {
                 flexDirection: 'row',
                 alignSelf: 'flex-end',
               }}>
-              {this.renderRecording()}
+              {!isRecording ? (
+                <TouchableOpacity
+                  onPress={() => this.startVideo()}
+                  style={styles.flipButton}>
+                  <Text style={styles.flipText}> REC </Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  onPress={() => this.stopVideo()}
+                  style={styles.flipButton}>
+                  <Text style={styles.flipText}> STOP </Text>
+                </TouchableOpacity>
+              )}
             </View>
 
             {this.state.zoom !== 0 && (
@@ -326,8 +310,6 @@ export default class Camera extends Component {
 
             <View
               style={{
-                height: 56,
-                backgroundColor: 'transparent',
                 flexDirection: 'row',
                 alignSelf: 'flex-end',
               }}>
@@ -344,12 +326,8 @@ export default class Camera extends Component {
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[
-                  styles.flipButton,
-                  styles.picButton,
-                  {flex: 0.3, alignSelf: 'flex-end'},
-                ]}
-                onPress={this.takePicture}>
+                onPress={this.takePicture}
+                style={styles.flipButton}>
                 <Text style={styles.flipText}> SNAP </Text>
               </TouchableOpacity>
             </View>
