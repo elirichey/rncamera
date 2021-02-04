@@ -35,6 +35,8 @@ export default class Camera extends Component {
       },
       isRecording: false,
     };
+
+    this.zoom_value = 0.01;
   }
 
   componentDidMount = async () => {
@@ -58,6 +60,7 @@ export default class Camera extends Component {
   toggleViewport = () => {
     this.setState({
       viewPortFront: this.state.viewPortFront ? false : true,
+      zoom: 0,
     });
   };
 
@@ -115,7 +118,7 @@ export default class Camera extends Component {
     }
   };
 
-  /************************************ TOUCHABLES ************************************/
+  /************************************ GESTURE CONTROLS ************************************/
 
   touchToFocus = (event) => {
     const {pageX, pageY} = event.nativeEvent;
@@ -139,29 +142,32 @@ export default class Camera extends Component {
     });
   };
 
-  zoomOut = () => {
-    this.setState({
-      zoom: this.state.zoom - 0.1 < 0 ? 0 : this.state.zoom - 0.1,
-    });
+  onPinchStart = () => {
+    this._prevPinch = 1;
   };
 
-  zoomIn = () => {
-    this.setState({
-      zoom: this.state.zoom + 0.1 > 1 ? 1 : this.state.zoom + 0.1,
-    });
+  onPinchEnd = () => {
+    this._prevPinch = 1;
+  };
+
+  onPinchProgress = (p) => {
+    let p2 = p - this._prevPinch;
+    if (p2 > 0 && p2 > this.zoom_value) {
+      this._prevPinch = p;
+      this.setState(
+        {zoom: Math.min(this.state.zoom + this.zoom_value, 1)},
+        () => {},
+      );
+    } else if (p2 < 0 && p2 < -this.zoom_value) {
+      this._prevPinch = p;
+      this.setState(
+        {zoom: Math.max(this.state.zoom - this.zoom_value, 0)},
+        () => {},
+      );
+    }
   };
 
   /************************************ ACTION CONTROLS ************************************/
-
-  takePicture = async function () {
-    if (this.camera) {
-      const data = await this.camera.takePictureAsync();
-      let tag = data.uri;
-
-      console.log('takePicture ', tag);
-      CameraRoll.save(tag);
-    }
-  };
 
   startVideo = async () => {
     const {isRecording} = this.state;
@@ -183,8 +189,8 @@ export default class Camera extends Component {
     }
   };
 
-  stopVideo = () => {
-    this.camera.stopRecording();
+  stopVideo = async () => {
+    await this.camera.stopRecording();
     this.setState({isRecording: false});
   };
 
@@ -192,7 +198,7 @@ export default class Camera extends Component {
 
   cameraNotAuthorized = () => {
     return (
-      <Text transparent style={styles.cameraNotAuthorized}>
+      <Text transparent style={styles.camera_not_authorized_txt}>
         Camera access was not granted. Please go to your phone's settings and
         allow camera access.
       </Text>
@@ -215,7 +221,7 @@ export default class Camera extends Component {
           ref={(ref) => {
             this.camera = ref;
           }}
-          style={styles.cameraView}
+          style={styles.camera_view}
           type={
             viewPortFront
               ? RNCamera.Constants.Type.front
@@ -234,114 +240,66 @@ export default class Camera extends Component {
             buttonNegative: 'Cancel',
           }}
           notAuthorizedView={this.cameraNotAuthorized()}>
-          {/* Touch To Focus */}
-          <View style={styles.focusContainer}>
-            <TouchableWithoutFeedback onPress={this.touchToFocus}>
-              <View style={{flex: 1}} />
-            </TouchableWithoutFeedback>
-
-            {/*
-            <ZoomView
-              onZoomProgress={(progress) => {
-                console.log('ZOOM : ', progress);
-                this.setState({zoom: progress});
-              }}
-              onZoomStart={() => {
-                console.log('ZOOM START');
-              }}
-              onZoomEnd={(focusCor) => {
-                focusCor.x = focusCor.x / this.state.cameraWidth;
-                focusCor.y = focusCor.y / this.state.cameraHeight;
-                console.log('ZOOM END : ', focusCor);
-                this.setState({autoFocus: focusCor});
-              }}></ZoomView>
-            */}
-          </View>
-
-          {/* Top Controls */}
-          <View style={styles.topControls}>
-            <View
-              style={{
-                flex: 1,
-                height: 50,
-                flexDirection: 'row',
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}>
-              <TouchableOpacity
-                style={styles.topBtn}
-                onPress={this.toggleFlash}>
-                <Text style={styles.flipText}>FLASH: {flash}</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.topBtn}
-                onPress={this.toggleWhiteBalance}>
-                <Text style={styles.flipText}>WB: {whiteBalance}</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.topBtn}
-                onPress={this.toggleViewport}>
-                <Text style={styles.flipText}>FLIP</Text>
-              </TouchableOpacity>
+          <ZoomView
+            onPinchEnd={this.onPinchEnd}
+            onPinchStart={this.onPinchStart}
+            onPinchProgress={this.onPinchProgress}>
+            {/* Touch To Focus */}
+            <View style={styles.focus_container}>
+              <TouchableWithoutFeedback onPress={this.touchToFocus}>
+                <View style={{flex: 1}} />
+              </TouchableWithoutFeedback>
             </View>
-          </View>
 
-          {/* Bottom Controls */}
-          <View style={styles.bottomControls}>
-            <View
-              style={{
-                height: 56,
-                backgroundColor: 'transparent',
-                flexDirection: 'row',
-                alignSelf: 'flex-end',
-              }}>
-              {!isRecording ? (
+            {/* Top Controls */}
+            <View style={styles.top_controls_container}>
+              <View
+                style={{
+                  flex: 1,
+                  height: 50,
+                  flexDirection: 'row',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}>
                 <TouchableOpacity
-                  onPress={() => this.startVideo()}
-                  style={styles.flipButton}>
-                  <Text style={styles.flipText}> REC </Text>
+                  style={styles.camera_control_btn}
+                  onPress={this.toggleFlash}>
+                  <Text style={styles.btn_txt}>FLASH: {flash}</Text>
                 </TouchableOpacity>
-              ) : (
+
                 <TouchableOpacity
-                  onPress={() => this.stopVideo()}
-                  style={styles.flipButton}>
-                  <Text style={styles.flipText}> STOP </Text>
+                  style={styles.camera_control_btn}
+                  onPress={this.toggleWhiteBalance}>
+                  <Text style={styles.btn_txt}>WB: {whiteBalance}</Text>
                 </TouchableOpacity>
-              )}
+
+                <TouchableOpacity
+                  style={styles.camera_control_btn}
+                  onPress={this.toggleViewport}>
+                  <Text style={styles.btn_txt}>FLIP</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
-            {this.state.zoom !== 0 && (
-              <Text style={[styles.flipText, styles.zoomText]}>
-                Zoom: {zoom}
-              </Text>
-            )}
-
-            <View
-              style={{
-                flexDirection: 'row',
-                alignSelf: 'flex-end',
-              }}>
-              <TouchableOpacity
-                style={[styles.flipButton, {flex: 0.1, alignSelf: 'flex-end'}]}
-                onPress={this.zoomIn}>
-                <Text style={styles.flipText}> + </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.flipButton, {flex: 0.1, alignSelf: 'flex-end'}]}
-                onPress={this.zoomOut}>
-                <Text style={styles.flipText}> - </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={this.takePicture}
-                style={styles.flipButton}>
-                <Text style={styles.flipText}> SNAP </Text>
-              </TouchableOpacity>
+            {/* Bottom Controls */}
+            <View style={styles.bottom_controls_container}>
+              <View style={styles.bottom_controls}>
+                {!isRecording ? (
+                  <TouchableOpacity
+                    onPress={() => this.startVideo()}
+                    style={styles.btn_container}>
+                    <Text style={styles.btn_txt}> REC </Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    onPress={() => this.stopVideo()}
+                    style={styles.btn_container_active}>
+                    <Text style={styles.btn_txt}> STOP </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
-          </View>
+          </ZoomView>
         </RNCamera>
       </View>
     );
@@ -351,19 +309,18 @@ export default class Camera extends Component {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 10,
-    backgroundColor: '#000011',
+    backgroundColor: '#000000',
   },
-  cameraView: {
+  camera_view: {
     flex: 1,
     justifyContent: 'space-between',
   },
 
   // Main Containers
-  focusContainer: {
+  focus_container: {
     ...StyleSheet.absoluteFill,
   },
-  topControls: {
+  top_controls_container: {
     position: 'absolute',
     top: 0,
     left: 0,
@@ -371,19 +328,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
   },
-  bottomControls: {
+  bottom_controls_container: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
   },
-  cameraNotAuthorized: {
+  bottom_controls: {
+    flexDirection: 'row',
+    alignSelf: 'center',
+    paddingBottom: 100,
+  },
+  camera_not_authorized_txt: {
     padding: 40,
     paddingTop: 72,
   },
 
   // Buttons
-  topBtn: {
+  camera_control_btn: {
     flex: 1,
     padding: 20,
     alignItems: 'center',
@@ -392,30 +354,34 @@ const styles = StyleSheet.create({
 
   /**************** Stock UI Styles ****************/
 
-  flipButton: {
-    flex: 0.3,
-    height: 40,
+  btn_container: {
+    height: 100,
+    width: 100,
     marginHorizontal: 2,
     marginBottom: 10,
     marginTop: 10,
-    borderRadius: 8,
-    borderColor: 'white',
+    borderRadius: 50,
+    borderColor: '#FFFFFF',
     borderWidth: 1,
     padding: 5,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  flipText: {
+  btn_container_active: {
+    height: 100,
+    width: 100,
+    marginHorizontal: 2,
+    marginBottom: 10,
+    marginTop: 10,
+    borderRadius: 50,
+    borderColor: '#FF0000',
+    borderWidth: 1,
+    padding: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  btn_txt: {
     color: '#FFFFFF',
     fontSize: 15,
-  },
-  zoomText: {
-    position: 'absolute',
-    bottom: 70,
-    zIndex: 2,
-    left: 2,
-  },
-  picButton: {
-    backgroundColor: 'darkseagreen',
   },
 });
