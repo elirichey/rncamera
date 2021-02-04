@@ -316,7 +316,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
 
-  // Main Containers
+  // Containers
   focus_container: {
     ...StyleSheet.absoluteFill,
   },
@@ -351,9 +351,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-
-  /**************** Stock UI Styles ****************/
-
   btn_container: {
     height: 100,
     width: 100,
