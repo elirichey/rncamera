@@ -22,3 +22,4 @@
 - Used for taking video
 - For the time being, functionality for taking pictures has been removed
 - By default it saves media to user's camera roll
+- If you have use_frameworks! in podfile, enable flipper

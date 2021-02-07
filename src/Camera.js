@@ -1,6 +1,7 @@
 import React, {Component} from 'react';
 import {
   Platform,
+  SafeAreaView,
   PermissionsAndroid,
   StyleSheet,
   Text,
@@ -27,7 +28,6 @@ export default class Camera extends Component {
           y: Dimensions.get('window').height * 0.5 - 32,
         },
       },
-      autoFocus: {x: 0.5, y: 0.5, autoExposure: true},
       viewPortFront: false,
       whiteBalance: 'auto',
       recordOptions: {
@@ -216,7 +216,7 @@ export default class Camera extends Component {
     } = this.state;
 
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container}>
         <RNCamera
           ref={(ref) => {
             this.camera = ref;
@@ -301,7 +301,7 @@ export default class Camera extends Component {
             </View>
           </ZoomView>
         </RNCamera>
-      </View>
+      </SafeAreaView>
     );
   }
 }
@@ -347,7 +347,6 @@ const styles = StyleSheet.create({
   // Buttons
   camera_control_btn: {
     flex: 1,
-    padding: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
