@@ -46,12 +46,12 @@ export default class Camera extends Component {
   };
 
   hasAndroidPermission = async () => {
-    const permission = PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE;
-    const hasPermission = await PermissionsAndroid.check(permission);
+    let permission = PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE;
+    let hasPermission = await PermissionsAndroid.check(permission);
     if (hasPermission) {
       return true;
     }
-    const status = await PermissionsAndroid.request(permission);
+    let status = await PermissionsAndroid.request(permission);
     return status === 'granted';
   };
 
@@ -121,10 +121,10 @@ export default class Camera extends Component {
   /************************************ GESTURE CONTROLS ************************************/
 
   touchToFocus = (event) => {
-    const {pageX, pageY} = event.nativeEvent;
-    const screenWidth = Dimensions.get('window').width;
-    const screenHeight = Dimensions.get('window').height;
-    const isPortrait = screenHeight > screenWidth;
+    let {pageX, pageY} = event.nativeEvent;
+    let screenWidth = Dimensions.get('window').width;
+    let screenHeight = Dimensions.get('window').height;
+    let isPortrait = screenHeight > screenWidth;
 
     let x = pageX / screenWidth;
     let y = pageY / screenHeight;
@@ -170,14 +170,14 @@ export default class Camera extends Component {
   /************************************ ACTION CONTROLS ************************************/
 
   startVideo = async () => {
-    const {isRecording} = this.state;
+    let {isRecording} = this.state;
     if (this.camera && !isRecording) {
       try {
-        const promise = this.camera.recordAsync(this.state.recordOptions);
+        let promise = this.camera.recordAsync(this.state.recordOptions);
 
         if (promise) {
           this.setState({isRecording: true});
-          const data = await promise;
+          let data = await promise;
           let tag = data.uri;
 
           console.log('startVideo', tag);
@@ -206,7 +206,7 @@ export default class Camera extends Component {
   };
 
   render() {
-    const {
+    let {
       isRecording,
       autoFocusPoint,
       viewPortFront,
