@@ -239,6 +239,12 @@ export default class Camera extends Component {
             buttonPositive: 'Ok',
             buttonNegative: 'Cancel',
           }}
+          androidRecordAudioPermissionOptions={{
+            title: 'Permission to use audio recording',
+            message: 'We need your permission to use your audio',
+            buttonPositive: 'Ok',
+            buttonNegative: 'Cancel',
+          }}
           notAuthorizedView={this.cameraNotAuthorized()}>
           <ZoomView
             onPinchEnd={this.onPinchEnd}
