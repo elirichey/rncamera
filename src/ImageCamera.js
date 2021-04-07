@@ -1,4 +1,4 @@
-import React, {Component} from 'react';
+import React, {Component, Fragment} from 'react';
 import {
   Platform,
   SafeAreaView,
@@ -14,7 +14,7 @@ import {RNCamera} from 'react-native-camera';
 import CameraRoll from '@react-native-community/cameraroll';
 import ZoomView from './ZoomView';
 
-export default class Camera extends Component {
+export default class VideoCamera extends Component {
   constructor(props) {
     super(props);
 
@@ -33,7 +33,10 @@ export default class Camera extends Component {
       recordOptions: {
         mute: false,
       },
-      isRecording: false,
+      canDetectBarcode: true,
+      faces: [],
+      textBlocks: [],
+      barcodes: [],
     };
 
     this.zoom_value = 0.01;
@@ -169,30 +172,16 @@ export default class Camera extends Component {
 
   /************************************ ACTION CONTROLS ************************************/
 
-  startVideo = async () => {
-    let {isRecording} = this.state;
-    if (this.camera && !isRecording) {
-      try {
-        let promise = this.camera.recordAsync(this.state.recordOptions);
-
-        if (promise) {
-          this.setState({isRecording: true});
-          let data = await promise;
-          let tag = data.uri;
-
-          console.log('startVideo', tag);
-          CameraRoll.save(tag);
-        }
-      } catch (e) {
-        console.error(e);
-      }
+  takePicture = async function () {
+    if (this.camera) {
+      let data = await this.camera.takePictureAsync();
+      console.warn('takePicture ', data);
+      let tag = data.uri;
+      CameraRoll.save(tag);
     }
   };
 
-  stopVideo = async () => {
-    await this.camera.stopRecording();
-    this.setState({isRecording: false});
-  };
+  barcodeRecognized = ({barcodes}) => this.setState({barcodes});
 
   /************************************ RENDERS ************************************/
 
@@ -205,14 +194,39 @@ export default class Camera extends Component {
     );
   };
 
+  renderBarcodes = () => {
+    let {barcodes} = this.state;
+    return (
+      <View style={styles.img_preview_container} pointerEvents="none">
+        {barcodes.map(this.renderBarcode)}
+      </View>
+    );
+  };
+
+  renderBarcode = ({bounds, data, type}) => (
+    <Fragment key={data + bounds.origin.x}>
+      <View
+        style={[
+          styles.text,
+          {
+            ...bounds.size,
+            left: bounds.origin.x,
+            top: bounds.origin.y,
+          },
+        ]}>
+        <Text style={[styles.textBlock]}>{`${data} ${type}`}</Text>
+      </View>
+    </Fragment>
+  );
+
   render() {
     let {
-      isRecording,
       autoFocusPoint,
       viewPortFront,
       flash,
       zoom,
       whiteBalance,
+      canDetectBarcode,
     } = this.state;
 
     return (
@@ -245,7 +259,10 @@ export default class Camera extends Component {
             buttonPositive: 'Ok',
             buttonNegative: 'Cancel',
           }}
-          notAuthorizedView={this.cameraNotAuthorized()}>
+          notAuthorizedView={this.cameraNotAuthorized()}
+          onGoogleVisionBarcodesDetected={
+            canDetectBarcode ? this.barcodeRecognized : null
+          }>
           <ZoomView
             onPinchEnd={this.onPinchEnd}
             onPinchStart={this.onPinchStart}
@@ -290,22 +307,16 @@ export default class Camera extends Component {
             {/* Bottom Controls */}
             <View style={styles.bottom_controls_container}>
               <View style={styles.bottom_controls}>
-                {!isRecording ? (
-                  <TouchableOpacity
-                    onPress={() => this.startVideo()}
-                    style={styles.btn_container}>
-                    <Text style={styles.btn_txt}> REC </Text>
-                  </TouchableOpacity>
-                ) : (
-                  <TouchableOpacity
-                    onPress={() => this.stopVideo()}
-                    style={styles.btn_container_active}>
-                    <Text style={styles.btn_txt}> STOP </Text>
-                  </TouchableOpacity>
-                )}
+                <TouchableOpacity
+                  onPress={() => this.takePicture()}
+                  style={styles.btn_container}>
+                  <Text style={styles.btn_txt}> TAKE PIC </Text>
+                </TouchableOpacity>
               </View>
             </View>
           </ZoomView>
+
+          {!!canDetectBarcode && this.renderBarcodes()}
         </RNCamera>
       </SafeAreaView>
     );
@@ -385,5 +396,13 @@ const styles = StyleSheet.create({
   btn_txt: {
     color: '#FFFFFF',
     fontSize: 15,
+  },
+  // Pictures
+  img_preview_container: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    left: 0,
+    top: 0,
   },
 });

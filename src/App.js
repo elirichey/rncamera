@@ -1,13 +1,21 @@
 import React, {Component} from 'react';
 import {StyleSheet, StatusBar, View} from 'react-native';
-import Camera from './Camera';
+import VideoCamera from './VideoCamera';
+import ImageCamera from './ImageCamera';
 
 export default class App extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      showVideo: false,
+    };
+  }
   render() {
+    let {showVideo} = this.state;
     return (
       <View style={styles.container}>
         <StatusBar hidden={true} />
-        <Camera />
+        {showVideo ? <VideoCamera /> : <ImageCamera />}
       </View>
     );
   }
