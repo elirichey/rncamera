@@ -30,12 +30,7 @@ export default class VideoCamera extends Component {
       },
       viewPortFront: false,
       whiteBalance: 'auto',
-      recordOptions: {
-        mute: false,
-      },
       canDetectBarcode: true,
-      faces: [],
-      textBlocks: [],
       barcodes: [],
     };
 
@@ -175,13 +170,34 @@ export default class VideoCamera extends Component {
   takePicture = async function () {
     if (this.camera) {
       let data = await this.camera.takePictureAsync();
-      console.warn('takePicture ', data);
       let tag = data.uri;
       CameraRoll.save(tag);
     }
   };
 
-  barcodeRecognized = ({barcodes}) => this.setState({barcodes});
+  isJSON = (str) => {
+    try {
+      return JSON.parse(str) && !!str;
+    } catch (e) {
+      return false;
+    }
+  };
+
+  setBarcodes = ({barcodes}) => {
+    if (this.isJSON(barcodes[0].data)) {
+      let error = JSON.parse(barcodes[0].data).errorCode;
+      if (!!error) {
+        console.log('ERROR: ', error);
+        return;
+      } else {
+        console.log('SET_BARCODES: ', barcodes[0].data);
+        this.setState({barcodes});
+      }
+    } else {
+      console.log('SET_BARCODES: ', barcodes[0].data);
+      this.setState({barcodes});
+    }
+  };
 
   /************************************ RENDERS ************************************/
 
@@ -196,6 +212,7 @@ export default class VideoCamera extends Component {
 
   renderBarcodes = () => {
     let {barcodes} = this.state;
+
     return (
       <View style={styles.img_preview_container} pointerEvents="none">
         {barcodes.map(this.renderBarcode)}
@@ -260,8 +277,9 @@ export default class VideoCamera extends Component {
             buttonNegative: 'Cancel',
           }}
           notAuthorizedView={this.cameraNotAuthorized()}
+          // onBarCodeRead={canDetectBarcode ? this.setBarcodes : null}
           onGoogleVisionBarcodesDetected={
-            canDetectBarcode ? this.barcodeRecognized : null
+            canDetectBarcode ? this.setBarcodes : null
           }>
           <ZoomView
             onPinchEnd={this.onPinchEnd}
@@ -316,7 +334,7 @@ export default class VideoCamera extends Component {
             </View>
           </ZoomView>
 
-          {!!canDetectBarcode && this.renderBarcodes()}
+          {/* !!canDetectBarcode && this.renderBarcodes() */}
         </RNCamera>
       </SafeAreaView>
     );
