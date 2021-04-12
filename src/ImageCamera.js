@@ -14,7 +14,7 @@ import {RNCamera} from 'react-native-camera';
 import CameraRoll from '@react-native-community/cameraroll';
 import ZoomView from './ZoomView';
 
-export default class VideoCamera extends Component {
+export default class ImageCamera extends Component {
   constructor(props) {
     super(props);
 
