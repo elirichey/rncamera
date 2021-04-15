@@ -34,7 +34,7 @@ export default class ImageCamera extends Component {
       barcodes: [],
     };
 
-    this.zoom_value = 0.01;
+    this.zoom_value = 0.03;
   }
 
   componentDidMount = async () => {
